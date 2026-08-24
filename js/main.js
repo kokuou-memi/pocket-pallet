@@ -8,7 +8,7 @@
    (例: https://あなたのユーザー名.github.io/*)に限定してください。
    制限しないと、キーを他人に使われて課金/停止のリスクがあります。
 ========================================================= */
-const YT_API_KEY = "AIzaSyCyQUzcPHg2w_ysagJEkBG7IjKXlQDXbXE";
+const YT_API_KEY = "AIzaSyBjleGhcJJxJBZMacpUng0NJzx7vrqn9Ow";
 
 /* 何分キャッシュを使い回すか(ブラウザのlocalStorageに保存)。
    検索APIは1回100クォータ消費し、1日の無料枠は10,000クォータです。
@@ -50,7 +50,7 @@ async function checkIsLive(channelId) {
   }
 
   // APIキー未設定の場合は何もしない(コンソールに案内だけ出す)
-  if (!YT_API_KEY || YT_API_KEY === "AIzaSyCyQUzcPHg2w_ysagJEkBG7IjKXlQDXbXE") {
+  if (!YT_API_KEY || YT_API_KEY === "AIzaSyBjleGhcJJxJBZMacpUng0NJzx7vrqn9Ow") {
     console.warn("[pkpl] YouTube APIキーが未設定です。js/main.js の YT_API_KEY を設定してください。");
     return { isLive: false, error: true };
   }
