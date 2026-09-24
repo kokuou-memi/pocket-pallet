@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ぽけっとぱれっと</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fffcea;--teal:#4cc9b8;--ink:#5a3a12;--purple:#3b1f9e;--yellow:#fbe27a;--live:#e62b2b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"M PLUS 1",sans-serif;font-weight:700}
+.wrap{max-width:960px;margin:0 auto}
+header img{width:100%;display:block}
+h2{font-family:"M PLUS 1",sans-serif;color:var(--purple);text-align:center;letter-spacing:.15em;font-size:1.6rem;margin:.6em 0 .3em}
+
+/* Member */
+.members{display:grid;grid-template-columns:repeat(3,1fr);gap:0 4px;padding:0 4px}
+.member{display:block;text-align:center;text-decoration:none;color:var(--purple);font-family:"M PLUS 1",sans-serif;margin-bottom:14px}
+.member .pic{position:relative;aspect-ratio:1;overflow:hidden;background:#eee}
+.member img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.member:hover img,.member:focus-visible img{transform:scale(1.05)}
+.member .name{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 0;font-size:.95rem}
+.member .name::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--live);flex:none}
+.member .badge{display:none;position:absolute;right:6px;bottom:6px;background:#fff;color:var(--live);border:2px solid var(--live);border-radius:4px;padding:1px 8px;font:700 1.1rem "M PLUS 1";letter-spacing:.05em}
+.member.live .badge{display:block;animation:pulse 1.4s infinite}
+.member.live .pic{box-shadow:inset 0 0 0 4px var(--live),0 0 18px 4px rgba(255,60,60,.7)}
+.member.live .name{color:var(--live);text-shadow:0 0 8px rgba(255,80,80,.8)}
+@keyframes pulse{50%{opacity:.55}}
+
+/* Rails */
+.rail-head{display:flex;align-items:center;gap:10px;margin:16px 10px 4px}
+.tag{background:var(--yellow);border-radius:20px;padding:3px 14px;font-size:.85rem;box-shadow:0 2px 0 #d9b93e}
+.sub{font-family:"M PLUS 1";font-size:.85rem}
+.rail{position:relative}
+.track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:8px 12px 12px;scrollbar-width:none}
+.track::-webkit-scrollbar{display:none}
+.card{flex:none;width:min(46vw,260px);aspect-ratio:16/9;border:3px solid var(--teal);border-radius:18px;overflow:hidden;background:#fff;scroll-snap-align:start;display:block}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.card:hover,.card:focus-visible{border-color:var(--purple)}
+.next{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:var(--yellow);color:var(--ink);font-size:1.2rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+
+/* Schedule */
+.sched{padding:0 20px 40px}
+.sched h2{text-align:left;text-decoration:underline;text-decoration-color:var(--ink);text-underline-offset:6px;color:var(--ink)}
+.date{margin:18px 0 8px 24px;font-family:"M PLUS 1";font-size:1.05rem}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;max-width:640px;margin:0 0 14px 34px;padding:14px 16px;border:3px solid var(--teal);border-radius:16px;text-decoration:none;color:var(--ink);background:#fff}
+.item:hover,.item:focus-visible{border-color:var(--purple)}
+.item .time{font-family:"M PLUS 1";font-size:1.05rem;letter-spacing:.1em}
+.item .ttl{font-size:.85rem;margin-top:6px;font-family:"M PLUS 1"}
+.item img{width:132px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;flex:none;background:#888}
+.empty{margin-left:34px;font-size:.9rem}
+@media(max-width:520px){.item{margin-left:0}.date{margin-left:4px}.item img{width:96px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><img src="images/header.png" alt="ぽけっとぱれっと Pocket Pallet"></header>
+
+<h2>Member</h2>
+<div class="members" id="members"></div>
+
+<section id="rails"></section>
+
+<section class="sched">
+  <h2>配信予定</h2>
+  <div id="schedule"><p class="empty">読み込み中…</p></div>
+</section>
+</div>
+
+<script>
+/* ============ 設定 ここだけ編集してください ============ */
+const API_KEY = "AIzaSyD_0mvfc783htZUH7inn-pdlDFRWUgao4o";   // YouTube Data API v3 のキー
+
+// メンバー（画像は images/ フォルダに置く。チャンネルIDはURLの@ハンドルから自動取得します）
+const MEMBERS = [
+  {name:"夢中ちょん", img:"images/chon.png", url:"https://www.youtube.com/@Yumenaka_Chon"},
+  {name:"国愛めみ",   img:"images/memi.png", url:"https://www.youtube.com/@Kokuou_Memi"},
+  {name:"苫漓ポキ",   img:"images/poki.png", url:"https://www.youtube.com/@tomari-poki"},
+  {name:"雪枝しずく", img:"images/shizuku.png", url:"https://youtube.com/@yukiedashizuku"},
+  {name:"深月そると", img:"images/soruto.png", url:"https://www.youtube.com/@shinzuki_soruto"},
+  {name:"及川結莉",   img:"images/yuuri.png", url:"https://www.youtube.com/@yuuri_63"},
+];
+
+// 再生リスト。新しく追加した動画が自動で反映されます
+const RAILS = [
+  {tag:"月曜日のぽけぱれTV", sub:"●動画",   type:"playlist",  ids:["PLayQ_B53DDqw"]},
+  {tag:"月曜日のぽけぱれTV", sub:"●shorts", type:"playlist",  ids:["PLZMMNR4J1V_k"]},
+  {tag:"月曜日のぽけぱれTV", sub:"●生放送", type:"playlist",  ids:["PLxxxxxxxxxxxxxxxx"]},
+  {tag:"ぽけぱれ大型企画",   sub:"",        type:"playlists", ids:["PLxxxxxxxxxxxxxxxx","PLyyyyyyyyyyyyyyyy"]}, // 再生リストの表紙を表示
+];
+const SCHEDULE_DAYS = 7; // 何日先まで表示するか
+/* ====================================================== */
+
+const API = "https://www.googleapis.com/youtube/v3/";
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ytVideo = id => `https://www.youtube.com/watch?v=${id}`;
+const ytList  = id => `https://www.youtube.com/playlist?list=${id}`;
+const thumb = t => (t && (t.maxres || t.high || t.medium || t.default) || {}).url || "";
+const configured = API_KEY && !API_KEY.startsWith("YOUR_");
+
+async function api(path, params){
+  const q = new URLSearchParams({...params, key:API_KEY});
+  const r = await fetch(API + path + "?" + q);
+  if(!r.ok) throw new Error(path + " " + r.status);
+  return r.json();
+}
+async function playlistVideos(id, max=25){
+  const d = await api("playlistItems",{part:"snippet",playlistId:id,maxResults:max});
+  return d.items.filter(i=>i.snippet.resourceId && i.snippet.thumbnails && Object.keys(i.snippet.thumbnails).length)
+    .map(i=>({href:ytVideo(i.snippet.resourceId.videoId), img:thumb(i.snippet.thumbnails), title:i.snippet.title}));
+}
+// @ハンドル → チャンネルID
+async function channelIdOf(m){
+  if(!m.channelId){
+    const h = m.url.split("@")[1];
+    const d = await api("channels",{part:"id",forHandle:h});
+    m.channelId = d.items[0].id;
+  }
+  return m.channelId;
+}
+// チャンネルの最新アップロード（ライブ・配信予定を含む）から状態を取得
+async function recentVideos(channelId){
+  const up = "UU" + channelId.slice(2);
+  const l = await api("playlistItems",{part:"contentDetails",playlistId:up,maxResults:12});
+  const ids = l.items.map(i=>i.contentDetails.videoId).join(",");
+  if(!ids) return [];
+  const v = await api("videos",{part:"snippet,liveStreamingDetails",id:ids});
+  return v.items;
+}
+
+/* Member */
+function renderMembers(){
+  $("#members").innerHTML = MEMBERS.map((m,i)=>`
+    <a class="member" id="m${i}" href="${m.url}" target="_blank" rel="noopener">
+      <div class="pic"><img src="${m.img}" alt="${esc(m.name)}"><span class="badge">LIVE</span></div>
+      <div class="name">${esc(m.name)}</div>
+    </a>`).join("");
+}
+
+/* Rails */
+function renderRails(){
+  $("#rails").innerHTML = RAILS.map((r,i)=>`
+    <div class="rail-head"><span class="tag">${esc(r.tag)}</span><span class="sub">${esc(r.sub)}</span></div>
+    <div class="rail"><div class="track" id="t${i}"></div>
+      <button class="next" aria-label="右へ" data-i="${i}">▶</button></div>`).join("");
+  document.querySelectorAll(".next").forEach(b=>b.onclick=()=>{
+    const t=$("#t"+b.dataset.i); t.scrollBy({left:t.clientWidth*.8,behavior:"smooth"});
+  });
+}
+const cardHtml = c => `<a class="card" href="${c.href}" target="_blank" rel="noopener" title="${esc(c.title||"")}"><img loading="lazy" src="${c.img}" alt="${esc(c.title||"")}"></a>`;
+async function fillRail(r,i){
+  const el = $("#t"+i);
+  try{
+    let cards;
+    if(r.type==="playlists"){
+      const d = await api("playlists",{part:"snippet",id:r.ids.join(","),maxResults:50});
+      cards = d.items.map(p=>({href:ytList(p.id), img:thumb(p.snippet.thumbnails), title:p.snippet.title}));
+    }else{
+      cards = (await Promise.all(r.ids.map(id=>playlistVideos(id)))).flat();
+    }
+    el.innerHTML = cards.map(cardHtml).join("");
+  }catch(e){ console.warn(e); el.innerHTML = placeholderCards(); }
+}
+const placeholderCards = () => Array(5).fill('<span class="card"></span>').join("");
+
+/* Live + Schedule */
+async function loadLiveAndSchedule(){
+  const events = [];
+  await Promise.all(MEMBERS.map(async (m,i)=>{
+    try{
+      const vids = await recentVideos(await channelIdOf(m));
+      const live = vids.find(v=>v.snippet.liveBroadcastContent==="live");
+      if(live){ const a=$("#m"+i); a.classList.add("live"); a.href=ytVideo(live.id); }
+      vids.filter(v=>v.snippet.liveBroadcastContent==="upcoming" && v.liveStreamingDetails?.scheduledStartTime)
+        .forEach(v=>events.push({id:v.id,title:v.snippet.title,img:thumb(v.snippet.thumbnails),
+          start:new Date(v.liveStreamingDetails.scheduledStartTime)}));
+    }catch(e){ console.warn(e); }
+  }));
+  renderSchedule(events);
+}
+function renderSchedule(events){
+  const box = $("#schedule");
+  const limit = Date.now() + SCHEDULE_DAYS*864e5;
+  const list = [...new Map(events.map(e=>[e.id,e])).values()]
+    .filter(e=>e.start<limit).sort((a,b)=>a.start-b.start);
+  if(!list.length){ box.innerHTML='<p class="empty">現在、予定されている配信はありません。</p>'; return; }
+  const dfmt = new Intl.DateTimeFormat("ja-JP",{month:"numeric",day:"numeric",weekday:"short",timeZone:"Asia/Tokyo"});
+  const tfmt = new Intl.DateTimeFormat("ja-JP",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Tokyo"});
+  let last="", html="";
+  for(const e of list){
+    const d = dfmt.format(e.start).replace("/","月").replace(/(\d+)(\(|（)/,"$1日$2");
+    if(d!==last){ html += `<div class="date">${esc(d)}</div>`; last=d; }
+    html += `<a class="item" href="${ytVideo(e.id)}" target="_blank" rel="noopener">
+      <div><div class="time">${tfmt.format(e.start)}〜</div><div class="ttl">${esc(e.title)}</div></div>
+      <img loading="lazy" src="${e.img}" alt=""></a>`;
+  }
+  box.innerHTML = html;
+}
+
+/* start */
+renderMembers();
+renderRails();
+if(configured){
+  RAILS.forEach(fillRail);
+  loadLiveAndSchedule();
+  setInterval(loadLiveAndSchedule, 5*60*1000); // 5分ごとにライブ判定を更新
+}else{
+  RAILS.forEach((r,i)=>$("#t"+i).innerHTML = placeholderCards());
+  $("#schedule").innerHTML = '<p class="empty">APIキーを設定すると配信予定が自動表示されます。</p>';
+}
+</script>
+</body>
+</html>
